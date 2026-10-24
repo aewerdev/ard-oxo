@@ -1,0 +1,4 @@
+/tui/target/
+.DS_Store
+*.hex
+*.elf
