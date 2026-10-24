@@ -4,28 +4,6 @@ A microcontroller-first tic-tac-toe RPG in your terminal. **The entire game, bot
 
 Inspired by [oxo-w3r.vercel.app](https://oxo-w3r.vercel.app/). Ultimate 9-board rules are based on the common variant; this is an independent recreation, not a port of the website's unpublished source.
 
-## Windows: one ZIP + setup.ps1 (recommended)
-
-Extract the entire archive into one folder. The root contains `setup.ps1`, `tui/`, `firmware/`, `tests/`, and instructions. Do not move the PowerShell script separately from the source folders.
-
-In **PowerShell**, from the extracted directory, launch:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -Port COM3
-```
-
-This checks Rust/Cargo, builds the terminal adapter, connects to `COM3` and launches the game. Omit `-Port COM3` to auto-select the sole serial port or choose one if there are multiple. If Rust is missing, the script can offer to install the official Rustup via `winget` (requires internet and approval).
-
-**Upload the included Arduino firmware** using Arduino IDE, or install Arduino CLI and run:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -Port COM3 -Flash
-```
-
-The `-Flash` option offers to install official Arduino CLI via `winget` if missing; it also installs the AVR core if needed. If your Nano clone uses an old bootloader, use `-Flash -OldBootloader`. **Flashing is opt-in**: by default the script assumes you previously flashed the sketch. The `-Probe` flag runs an optional serial diagnostic (it makes one test move), and `-NoRun` just compiles the client. Close Arduino IDE Serial Monitor and other COM3 consumers before running or flashing.
-
-`-ExecutionPolicy Bypass` applies only to that one PowerShell process; it does not permanently change Windows policies. Read the script before running it if you wish. The actual installed Rust libraries are downloaded by Cargo on the first build.
-
 ## Campaign
 
 | Level | Encounter | Rules | Victory condition |
@@ -105,7 +83,6 @@ Note: opening a classic Nano serial port commonly resets the board due to DTR. T
 | `N` | Advance to next level after winning |
 | `F1`…`F5` | Jump to any previously unlocked level |
 | `S` | Resend handshake and synchronize state |
-| `D` | Toggle `KEY / TX / RX` debug overlay |
 | `Q` / Escape / Ctrl+C | Quit the TUI |
 
 **Colors:** cyan = human X, red = enemy O, green dot = allowed empty cell, `#` = drawn mini-board. In Ultimate mode, the right panel indicates which mini-board is active; selecting a cell in another mini-board cannot make a move until the rule allows it.
@@ -146,26 +123,6 @@ S 3 P 9 1 1 3 1 ................................................................
 - PC commands: `SYNC`, `MOVE <index>`, `RETRY`, `NEXT`, `LEVEL <1..5>`, `PING`
 
 The Rust frontend **does not implement game rules or AI**. It only does a client-side legality check for keyboard feedback; the firmware is authoritative.
-
-## Interactive input / serial troubleshooting (patched build)
-
-If the board works from Arduino IDE Serial Monitor but the terminal does not mark cells, **close Serial Monitor** and update `tui/src/main.rs` to the version in this archive. In the patched TUI you can see diagnostic lines at the bottom:
-
-- `DEBUG KEY: Char('1')` means the terminal delivered the key event.
-- `TX: MOVE 0` means Rust attempted to send that cell's command.
-- `RX: STATE: X=1 O=1` means the Arduino's reply was decoded.
-
-Press `D` to show/hide debug diagnostics. A stray byte before a state frame (e.g. `�S ...`) is tolerated by the client. Serial commands are written in one packet, and stale moves are resynchronized.
-
-To isolate UART from the keyboard/console, **exit the TUI** and run this on Windows:
-
-```powershell
-cargo run --release -- --probe COM3
-```
-
-The `--probe` mode opens the port, lets the Nano reset, sends `SYNC` and `MOVE 0`, prints the received frames and the decoded X/O counts. It intentionally makes a test move. Close Arduino Serial Monitor before running it; `COM3` is only an example.
-
-If the TUI's `TX` field changes but `RX` stays an error or timeout, reflashing the updated `firmware/NanoOXO/NanoOXO.ino` from this archive may help: it discards malformed or incomplete incoming commands instead of poisoning subsequent ones. The protocol remains at **115200 baud**.
 
 ## Troubleshooting
 
